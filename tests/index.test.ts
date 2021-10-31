@@ -44,6 +44,11 @@ describe('order', () => {
     const { sql } = order(knex('table'), 'hello__asc', 'hey__desc').toSQL();
     expect(sql.endsWith('"hello" asc, "hey" desc')).toBe(true);
   });
+
+  test('with array', () => {
+    const { sql } = order(knex('table'), ['hello__asc', 'hey__desc']).toSQL();
+    expect(sql.endsWith('"hello" asc, "hey" desc')).toBe(true);
+  });
 });
 
 describe('paginate', () => {

@@ -86,8 +86,8 @@ function filterOperator<QB extends FilterQueryBuilder>(
   return builder;
 }
 
-export function order<QB extends OrderQueryBuilder>(builder: QB, ...order: Order[]): QB {
-  order.forEach(order => {
+export function order<QB extends OrderQueryBuilder>(builder: QB, ...order: (Order | Order[])[]): QB {
+  (<string[]>[]).concat(...order).forEach(order => {
     const [column, direction = 'asc'] = order.split('__');
     builder.orderBy(column, direction as 'asc' | 'desc');
   });
