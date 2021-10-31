@@ -81,16 +81,16 @@ function filterOperator(builder, column, operator, value, isOr) {
     return builder;
 }
 function order(builder, ...order) {
-    order.forEach(order => {
+    [].concat(...order).forEach(order => {
         const [column, direction = 'asc'] = order.split('__');
         builder.orderBy(column, direction);
     });
     return builder;
 }
 exports.order = order;
-function paginate(builder, page, itemsPerPage) {
-    builder.limit(itemsPerPage);
-    builder.offset((Math.max(1, page) - 1) * itemsPerPage);
+function paginate(builder, page, pageSize) {
+    builder.limit(pageSize);
+    builder.offset((Math.max(1, page) - 1) * pageSize);
     return builder;
 }
 exports.paginate = paginate;

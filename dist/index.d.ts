@@ -13,8 +13,8 @@ declare const _default: {
 };
 export default _default;
 export declare function filter<QB extends FilterQueryBuilder>(builder: QB, filterObject?: Filter): QB;
-export declare function order<QB extends OrderQueryBuilder>(builder: QB, ...order: Order[]): QB;
-export declare function paginate<QB extends PaginationQueryBuilder>(builder: QB, page: number, itemsPerPage: number): QB;
+export declare function order<QB extends OrderQueryBuilder>(builder: QB, ...order: (Order | Order[])[]): QB;
+export declare function paginate<QB extends PaginationQueryBuilder>(builder: QB, page: number, pageSize: number): QB;
 export declare type Value = string | number | boolean;
 declare type Operator = keyof typeof operatorMap;
 declare type AndOrPrefix<T extends string> = `${'and' | 'or'}__${T}`;
