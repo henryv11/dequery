@@ -156,7 +156,8 @@ order.defaultOrderDirection = 'asc' as 'asc' | 'desc';
  * paginate(builder, 2, 100); // -> limit 100 offset 100
  * paginate.delta = 0;
  * paginate(builder, 0, 100); // -> limit 100
- * paginate(builder, 1, 100); // -> limit 100 offset 100 * @param builder Query builder instance.
+ * paginate(builder, 1, 100); // -> limit 100 offset 100
+ * @param builder Query builder instance.
  * @param page Starts from 1. Defaults to 1. Uses builder offset method.
  * @example <caption>How offset is calculated</caption>
  * (Math.max(paginate.delta, page) - paginate.delta) * pageSize);

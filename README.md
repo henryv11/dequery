@@ -94,7 +94,7 @@ sql; // 'select * from table offset ? limit ?'
 ```ts
 import { order } from 'dequery';
 
-const { sql } = order(knex('table'), 'column1__asc', 'column2__desc').toSQL();
+const { sql } = order(knex('table'), '+column1', '-column2').toSQL();
 
 sql; // 'select * from table order by "column1" asc, "column2" desc'
 ```

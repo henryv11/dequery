@@ -106,7 +106,7 @@ describe(filter.name, () => {
   });
 
   describe('regex - re | ire', () => {
-    const regex = /test/;
+    const regex = new RegExp('');
 
     test('re', () => testFilter({ col__re: regex }, '"col" ~ ?', [regex]));
 
