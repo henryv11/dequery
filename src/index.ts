@@ -10,6 +10,8 @@ const BUILDER_OPERATOR_BY_COMPARISON_OPERATOR = {
   lt: '<',
   lte: '<=',
   ne: '<>',
+  re: '~',
+  ire: '!~',
 } as const;
 
 const METHOD_BY_CALLBACK_OPERATOR = {
@@ -180,10 +182,20 @@ paginate.defaultPageSize = 15;
 
 paginate.delta = 1 as 1 | 0;
 
-export type Filter = CallbackFilter & NullFilter & LikeFilter & InFilter & ComparisonFilter & BetweenFilter;
+export type Filter = CallbackFilter &
+  NullFilter &
+  LikeFilter &
+  InFilter &
+  ComparisonFilter &
+  BetweenFilter &
+  RegexFilter;
 
 type CallbackFilter = {
   [Key in CallbackKey]?: Filter;
+};
+
+type RegexFilter = {
+  [Key in KeyCombinations<RegexOperator>]: RegExp | string;
 };
 
 type NullFilter = {
@@ -199,7 +211,7 @@ type InFilter = {
 };
 
 type ComparisonFilter = {
-  [Key in KeyCombinations<ComparisonOperator>]?: Value;
+  [Key in KeyCombinations<Exclude<ComparisonOperator, RegexOperator>>]?: Value;
 };
 
 type BetweenFilter = {
@@ -251,6 +263,8 @@ type CallbackKey = keyof typeof METHOD_BY_CALLBACK_OPERATOR;
 type OrderDirection = keyof typeof BUILDER_ORDER_DIRECTION_BY_ORDER_DIRECTION;
 
 type LikeOperator = 'like' | 'ilike';
+
+type RegexOperator = 're' | 'ire';
 
 type Operator = ComparisonOperator | RangeOperator | NullOperator | LikeOperator;
 
