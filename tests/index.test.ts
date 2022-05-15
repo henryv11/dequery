@@ -3,6 +3,8 @@ import { Filter, filter, order, OrderString, paginate } from '../src';
 
 const knex = Knex({ client: 'pg' });
 
+knex.queryBuilder().whereNot('', null);
+
 describe(filter.name, () => {
   function testFilter(filterInput: Filter, expectedOutput: string, expectedBindings?: any[]) {
     const { sql, bindings } = filter(knex.queryBuilder(), filterInput).toSQL();
@@ -44,20 +46,38 @@ describe(filter.name, () => {
         '"col" = ? or ("col" = ? or "col2" like ? or ("col3" = ? or "col4" between ? and ?))',
         [0, '', '', 0, 0, 0],
       ));
-
-    test('multiple conditions', () =>
-      testFilter({ col__eq: '', col2__like: '' }, '"col" = ? and "col2" like ?', ['', '']));
-
-    test('multiple conditions with or', () =>
-      testFilter({ col__eq: '', or__col2__like: '' }, '"col" = ? or "col2" like ?', ['', '']));
-
-    test('and or', () => testFilter({ col__eq: '', or__col2__not_eq: '' }, '"col" = ? or not "col2" = ?', ['', '']));
-
-    test('not', () =>
-      testFilter({ not: { col__eq: '', or__col2__like: '' } }, 'not ("col" = ? or "col2" like ?)', ['', '']));
   });
 
-  describe('comparisons - eq | ne', () => {
+  describe('and or prefix', () => {
+    test('default is and', () =>
+      testFilter({ col__eq: '', col2__like: '' }, '"col" = ? and "col2" like ?', Array(2).fill('')));
+
+    test('or', () => testFilter({ col__eq: '', or__col2__like: '' }, '"col" = ? or "col2" like ?', Array(2).fill('')));
+
+    test('and', () =>
+      testFilter({ col__eq: '', and__col2__like: '' }, '"col" = ? and "col2" like ?', Array(2).fill('')));
+  });
+
+  describe('recursive methods', () => {
+    test('and', () =>
+      testFilter(
+        { col__eq: '', and: { col__eq: '', and: { col__eq: '' } } },
+        '"col" = ? and ("col" = ? and ("col" = ?))',
+        Array(3).fill(''),
+      ));
+
+    test('or', () =>
+      testFilter(
+        { col__eq: '', or: { col__eq: '', or: { col__eq: '' } } },
+        '"col" = ? or ("col" = ? or ("col" = ?))',
+        Array(3).fill(''),
+      ));
+
+    test('not', () =>
+      testFilter({ not: { col__eq: '', or: { col2__eq: '' } } }, 'not ("col" = ? or ("col2" = ?))', Array(2).fill('')));
+  });
+
+  describe('comparisons', () => {
     test('eq', () => testFilter({ col__eq: 0 }, '"col" = ?', [0]));
 
     test('not_eq', () => testFilter({ col__not_eq: 0 }, 'not "col" = ?', [0]));
@@ -70,12 +90,12 @@ describe(filter.name, () => {
   describe('dates', () => {
     const date = new Date();
 
-    test('btw with date', () => testFilter({ col__btw: [date, date] }, '"col" between ? and ?', [date, date]));
+    test('btw', () => testFilter({ col__btw: [date, date] }, '"col" between ? and ?', [date, date]));
 
-    test('lte with date', () => testFilter({ col__lte: date }, '"col" <= ?', [date]));
+    test('lte', () => testFilter({ col__lte: date }, '"col" <= ?', [date]));
   });
 
-  describe('arrays - in | btw', () => {
+  describe('arrays', () => {
     test('in', () => testFilter({ col__in: [0, 0, 0] }, '"col" in (?, ?, ?)', [0, 0, 0]));
 
     test('not_in', () => testFilter({ col__not_in: [0, 0, 0] }, '"col" not in (?, ?, ?)', [0, 0, 0]));
@@ -85,17 +105,21 @@ describe(filter.name, () => {
     test('not_btw', () => testFilter({ col__not_btw: [0, 0] }, '"col" not between ? and ?', [0, 0]));
   });
 
-  describe('null - is | eq | ne', () => {
-    test('null', () => testFilter({ col__is: null }, '"col" is null', []));
+  describe('null', () => {
+    test('is', () => testFilter({ col__is: null }, '"col" is null', []));
 
-    test('not null', () => testFilter({ col__is_not: null }, '"col" is not null', []));
+    test('is_not', () => testFilter({ col__is_not: null }, '"col" is not null', []));
 
-    test('null with eq', () => testFilter({ col__eq: null }, '"col" is null')), [];
+    test('eq', () => testFilter({ col__eq: null }, '"col" is null')), [];
 
-    test('null with ne', () => testFilter({ col__ne: null }, '"col" is not null', []));
+    test('ne', () => testFilter({ col__ne: null }, '"col" is not null', []));
+
+    test('not_ne', () => testFilter({ col__not_ne: null }, '"col" is null'));
+
+    test('not_eq', () => testFilter({ col__not_eq: null }, '"col" is not null'));
   });
 
-  describe('pattern - like | ilike', () => {
+  describe('pattern', () => {
     test('like', () => testFilter({ col__like: '' }, '"col" like ?', ['']));
 
     test('not_like', () => testFilter({ col__not_like: '' }, 'not "col" like ?', ['']));
@@ -105,7 +129,7 @@ describe(filter.name, () => {
     test('not_ilike', () => testFilter({ col__not_ilike: '' }, 'not "col" ilike ?', ['']));
   });
 
-  describe('regex - re | ire', () => {
+  describe('regex', () => {
     const regex = new RegExp('');
 
     test('re', () => testFilter({ col__re: regex }, '"col" ~ ?', [regex]));
@@ -115,6 +139,12 @@ describe(filter.name, () => {
     test('ire', () => testFilter({ col__ire: regex }, '"col" !~ ?', [regex]));
 
     test('not_ire', () => testFilter({ col__not_ire: regex }, 'not "col" !~ ?', [regex]));
+  });
+
+  describe('boolean', () => {
+    test('eq', () => testFilter({ col__eq: true }, '"col" = ?', [true]));
+
+    test('eq', () => testFilter({ col__ne: true }, '"col" <> ?', [true]));
   });
 });
 

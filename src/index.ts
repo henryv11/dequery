@@ -22,18 +22,24 @@ const METHOD_BY_CALLBACK_OPERATOR = {
   or_not: 'orWhereNot',
 } as const;
 
-const METHOD_BY_IS_OR_BY_RANGE_OPERATOR = {
+const METHOD_BY_IS_OR_BY_ARRAY_OPERATOR = {
   in: { true: 'orWhereIn', false: 'whereIn' },
   not_in: { true: 'orWhereNotIn', false: 'whereNotIn' },
   btw: { true: 'orWhereBetween', false: 'whereBetween' },
   not_btw: { true: 'orWhereNotBetween', false: 'whereNotBetween' },
 } as const;
 
+const NULL_METHOD_BY_IS_OR = { true: 'orWhereNull', false: 'whereNull' } as const;
+
+const NOT_NULL_METHOD_BY_IS_OR = { true: 'orWhereNotNull', false: 'whereNotNull' } as const;
+
 const METHOD_BY_IS_OR_BY_NULL_OPERATOR = {
-  is: { true: 'orWhereNull', false: 'whereNull' },
-  eq: { true: 'orWhereNull', false: 'whereNull' },
-  is_not: { true: 'orWhereNotNull', false: 'whereNotNull' },
-  ne: { true: 'orWhereNotNull', false: 'whereNotNull' },
+  eq: NULL_METHOD_BY_IS_OR,
+  is: NULL_METHOD_BY_IS_OR,
+  is_not: NOT_NULL_METHOD_BY_IS_OR,
+  ne: NOT_NULL_METHOD_BY_IS_OR,
+  not_eq: NOT_NULL_METHOD_BY_IS_OR,
+  not_ne: NULL_METHOD_BY_IS_OR,
 } as const;
 
 const METHOD_BY_IS_OR = { true: 'orWhere', false: 'where' } as const;
@@ -80,7 +86,7 @@ function filterOperator<Builder extends FilterQueryBuilder>(
   builder: Builder,
   column: string,
   operator: Operator,
-  value: Value,
+  value: Value | Value[] | BetweenValue[],
   isOr?: boolean,
 ): Builder {
   const isOrString = String(!!isOr) as 'true' | 'false';
@@ -88,11 +94,8 @@ function filterOperator<Builder extends FilterQueryBuilder>(
     builder[
       (METHOD_BY_IS_OR_BY_NULL_OPERATOR[operator as NullOperator] ?? METHOD_BY_IS_OR_BY_NULL_OPERATOR.is)[isOrString]
     ](column);
-  } else if (METHOD_BY_IS_OR_BY_RANGE_OPERATOR[operator as RangeOperator]) {
-    builder[METHOD_BY_IS_OR_BY_RANGE_OPERATOR[operator as RangeOperator][isOrString]](
-      column,
-      value as Exclude<Value, string | number | boolean | null | Date>,
-    );
+  } else if (METHOD_BY_IS_OR_BY_ARRAY_OPERATOR[operator as ArrayOperator]) {
+    builder[METHOD_BY_IS_OR_BY_ARRAY_OPERATOR[operator as ArrayOperator][isOrString]](column, value as never);
   } else {
     const parts = operator.split('_') as
       | [ComparisonOperator | LikeOperator]
@@ -102,14 +105,14 @@ function filterOperator<Builder extends FilterQueryBuilder>(
         builder[METHOD_BY_IS_OR[isOrString]](
           column,
           BUILDER_OPERATOR_BY_COMPARISON_OPERATOR[parts[0] as ComparisonOperator] || parts[0],
-          value,
+          value as Value,
         );
         break;
       case 2:
         builder[NEGATED_BUILDER_METHOD_BY_IS_OR[isOrString]](
           column,
           BUILDER_OPERATOR_BY_COMPARISON_OPERATOR[parts[1] as ComparisonOperator] || parts[1],
-          value,
+          value as Value,
         );
     }
   }
@@ -200,7 +203,7 @@ type RegexFilter = {
 };
 
 type NullFilter = {
-  [Key in WithAndOr<ColumnWithOperator<WithReverseNegation<'is'>>>]?: null | boolean;
+  [Key in WithAndOr<ColumnWithOperator<WithReverseNegation<'is'>>>]?: null;
 };
 
 type LikeFilter = {
@@ -216,8 +219,10 @@ type ComparisonFilter = {
 };
 
 type BetweenFilter = {
-  [Key in KeyCombinations<'btw'>]?: [string, string] | [number, number] | [Date, Date];
+  [Key in KeyCombinations<'btw'>]?: BetweenValue;
 };
+
+type BetweenValue = [string, string] | [number, number] | [Date, Date];
 
 export interface FilterQueryBuilder {
   where(col: string, op: BuilderComparisonOperator, val: Value): void;
@@ -232,10 +237,10 @@ export interface FilterQueryBuilder {
   orWhereIn(col: string, val: Value[]): void;
   whereNotIn(col: string, val: Value[]): void;
   orWhereNotIn(col: string, val: Value[]): void;
-  whereBetween(col: string, val: [string, string] | [number, number]): void;
-  whereNotBetween(col: string, val: [string, string] | [number, number]): void;
-  orWhereBetween(col: string, val: [string, string] | [number, number]): void;
-  orWhereNotBetween(col: string, val: [string, string] | [number, number]): void;
+  whereBetween(col: string, val: BetweenValue): void;
+  whereNotBetween(col: string, val: BetweenValue): void;
+  orWhereBetween(col: string, val: BetweenValue): void;
+  orWhereNotBetween(col: string, val: BetweenValue): void;
   whereNull(col: string): void;
   whereNotNull(col: string): void;
   orWhereNull(col: string): void;
@@ -255,7 +260,7 @@ type BuilderComparisonOperator = typeof BUILDER_OPERATOR_BY_COMPARISON_OPERATOR[
 
 type ComparisonOperator = keyof typeof BUILDER_OPERATOR_BY_COMPARISON_OPERATOR;
 
-type RangeOperator = keyof typeof METHOD_BY_IS_OR_BY_RANGE_OPERATOR;
+type ArrayOperator = keyof typeof METHOD_BY_IS_OR_BY_ARRAY_OPERATOR;
 
 type NullOperator = keyof typeof METHOD_BY_IS_OR_BY_NULL_OPERATOR;
 
@@ -267,7 +272,7 @@ type LikeOperator = 'like' | 'ilike';
 
 type RegexOperator = 're' | 'ire';
 
-type Operator = ComparisonOperator | RangeOperator | NullOperator | LikeOperator;
+type Operator = ComparisonOperator | ArrayOperator | NullOperator | LikeOperator;
 
 export type Value = string | number | boolean | Date | null;
 
