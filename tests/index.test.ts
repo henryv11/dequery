@@ -3,8 +3,6 @@ import { Filter, filter, order, OrderString, paginate } from '../src';
 
 const knex = Knex({ client: 'pg' });
 
-knex.queryBuilder().whereNot('', null);
-
 describe(filter.name, () => {
   function testFilter(filterInput: Filter, expectedOutput: string, expectedBindings?: any[]) {
     const { sql, bindings } = filter(knex.queryBuilder(), filterInput).toSQL();
